@@ -2,19 +2,17 @@
 pragma solidity 0.8.19;
 
 
-
 contract Lottery {
     address public owner;
     uint256 private jackPotOdds = 10;
-
     uint256 private prizePool;
     uint256 private jackPot;
     mapping(address => string) player;
     address[] public players;
 
-    event ANewPlayerEnrolled(string message);    
+    event NewPlayerEnrolled(string message);    
     event DisplayWinner(string message);
-    event JackPotIsWon(string message);
+    event JackPotWinner(string message);
 
     constructor(){   
         owner = msg.sender;
@@ -46,8 +44,6 @@ contract Lottery {
         return address(this).balance;
     }
 
-    
-
     function enroleInLottery(string memory playerName) public payable {
        require(msg.value == 1 ether);
        require(bytes(playerName).length > 0);
@@ -60,7 +56,7 @@ contract Lottery {
         prizePool += (msg.value * 90) / 100; 
         jackPot += (msg.value * 9) / 100;       
 
-        emit ANewPlayerEnrolled(string(abi.encodePacked(player[msg.sender], " has enrolled!!! Good luck!")));
+        emit NewPlayerEnrolled(string(abi.encodePacked(player[msg.sender], " has enrolled!!! Good luck!")));
 
         if(players.length == 10){
             getAWinner();
@@ -75,9 +71,9 @@ contract Lottery {
         return players.length;
     }
 
-    function getAWinner() private {        
-        
+    function getAWinner() private {                
         require(players.length == 10, "We do not have 10 participants yet ");
+
         uint nbOfPlayers = players.length;
         uint randomHash = uint(keccak256(abi.encodePacked(block.difficulty, block.timestamp)));
         uint winnerIndex = randomHash % nbOfPlayers;
@@ -97,12 +93,11 @@ contract Lottery {
     }
 
     function sendPrize(address winner) private {
-
         if(isJackPotWon())
         {
             prizePool += jackPot;
             jackPot = 0;
-            emit JackPotIsWon(string(abi.encodePacked("Congratulation to: ", player[winner], " you won the JACKPOT!!!!!")));
+            emit JackPotWinner(string(abi.encodePacked("Congratulation to: ", player[winner], " you won the JACKPOT!!!!!")));
         }
        
         payable(winner).transfer(prizePool);
