@@ -13,13 +13,13 @@ contract("Lottery", function ( accounts ) {
     lottery = await Lottery.new();
   });
 
-  async function enroleTenPlayers(lottery){
+  async function enroleNinePlayers(lottery){
     const wager = web3.utils.toWei('1', 'ether');
 
     let playerNames = ["player0", "player1", "player2", "player3", "player4", "player5", 
                       "player6", "player7", "player8", "player9"];
 
-    for(let i = 0; i < 10; i++) {
+    for(let i = 0; i < 9; i++) {
       await lottery.enroleInLottery(playerNames[i], {from: accounts[i], value: wager});  
     }  
   }
@@ -31,18 +31,18 @@ contract("Lottery", function ( accounts ) {
  
   it("should allow multiple accounts to enroll", async () => {   
     const wager = web3.utils.toWei('1', 'ether');
-    const expectedPricePool = web3.utils.toWei('9', 'ether');
-    const expectedJackPot = web3.utils.toWei('0.9', 'ether');
+    const expectedPricePool = web3.utils.toWei('8.1', 'ether');
+    const expectedJackPot = web3.utils.toWei('0.81', 'ether');
 
-    await enroleTenPlayers(lottery);
+    await enroleNinePlayers(lottery);
 
     const playersCount = await lottery.getParticipants();
-    const pricePool = await lottery.getPricePool();
+    const pricePool = await lottery.getPrizePool();
     const jackPot = await lottery.getJackPot();
 
-    assert.equal(playersCount.length, 10, "There should be exactly 10 players");
-    assert.equal(expectedPricePool, pricePool, "The pricePool should be 9");
-    assert.equal(expectedJackPot, jackPot, "The jackpot should be 0.9");   
+    assert.equal(playersCount.length, 9, "There should be exactly 9 players");
+    assert.equal(expectedPricePool, pricePool, "The pricePool should be 8.1");
+    assert.equal(expectedJackPot, jackPot, "The jackpot should be 0.81");   
   });
 
   it("should emit message when enrolling", async () => {  
@@ -59,10 +59,10 @@ contract("Lottery", function ( accounts ) {
     assert.isTrue(resultJoel.includes(joel), "The event output should contain the player's name");   
   });
 
-  it("should have 10 players enrolled", async () => {   
-    let expectedPlayers = 10;   
+  it("should have 9 players enrolled", async () => {   
+    let expectedPlayers = 9;   
 
-    await enroleTenPlayers(lottery);
+    await enroleNinePlayers(lottery);
 
     let nbOfPlayers = await lottery.getNumberOfParticipants()    
     
@@ -70,12 +70,12 @@ contract("Lottery", function ( accounts ) {
   });
 
   it("with jackpotOdds at 100%, should return prizePool + jackpot", async () => {    
-    const expectedPrize = web3.utils.toWei('9.9', 'ether');   
+    const expectedPrize = web3.utils.toWei('8.91', 'ether');   
     await lottery.setJackPotOdds(100);
 
-    await enroleTenPlayers(lottery);    
+    await enroleNinePlayers(lottery);    
 
-    prize = await lottery.getCalculatedPrizePool();    
+    prize = await lottery.getMaximumPrizePool();    
 
     assert.equal(expectedPrize, prize);   
   });
@@ -83,11 +83,16 @@ contract("Lottery", function ( accounts ) {
   it("picks a winner, and sends him money", async () => {    
     let possibleWinners = ["player0", "player1", "player2", "player3", "player4", "player5", 
                       "player6", "player7", "player8", "player9"];
-    await enroleTenPlayers(lottery);    
-       
-    let winner = await lottery.getAWinner();   
 
-    assert.isTrue (possibleWinners.includes(winner));
+    const wager = web3.utils.toWei('1', 'ether');
+    
+    const test = enroleNinePlayers(lottery);    
+    const tx1 = await lottery.enroleInLottery(possibleWinners[9], {from: accounts[9], value: wager});  
+       
+    const winner = tx1.logs[0].args.message;
+
+    assert.isTrue (possibleWinners.some(substring => winner.includes(substring)));
+    assert.equal(tx1.logs.length, 1, "no event was sent");
   });
 
 });

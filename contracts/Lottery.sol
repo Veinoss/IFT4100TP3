@@ -12,10 +12,9 @@ contract Lottery {
     mapping(address => string) player;
     address[] public players;
 
-    event ANewPlayerEnrolled(string message);
-
-    // temporaire
-        event fml(string, address);
+    event ANewPlayerEnrolled(string message);    
+    event DisplayWinner(string message);
+    event JackPotIsWon(string message);
 
     constructor(){   
         owner = msg.sender;
@@ -30,18 +29,24 @@ contract Lottery {
         require(newOdds >= 0 && newOdds <= 100);     
         jackPotOdds = newOdds;
     }
+    
+    function getJackPot() public view returns (uint) {
+        return jackPot;
+    }
 
-    function getPricePool() public view returns (uint) {
+    function getPrizePool() public view returns (uint) {
         return prizePool;
+    }
+
+    function getMaximumPrizePool() public view returns (uint256) {
+        return prizePool + jackPot;
     }
 
     function getBalance() public view returns (uint) {
         return address(this).balance;
     }
 
-    function getJackPot() public view returns (uint) {
-        return jackPot;
-    }
+    
 
     function enroleInLottery(string memory playerName) public payable {
        require(msg.value == 1 ether);
@@ -51,11 +56,15 @@ contract Lottery {
         player[msg.sender] = playerName;
         players.push(msg.sender);
 
-        // On garde 10% pour un jackpot potentiel 1 chance sur 10 de frappé le bonus
+        // On garde 9% pour un jackpot potentiel 1 chance sur 10 de frappé le bonus
         prizePool += (msg.value * 90) / 100; 
         jackPot += (msg.value * 9) / 100;       
 
         emit ANewPlayerEnrolled(string(abi.encodePacked(player[msg.sender], " has enrolled!!! Good luck!")));
+
+        if(players.length == 10){
+            getAWinner();
+        }
     }
 
     function getParticipants() public view returns(address[] memory){
@@ -66,8 +75,7 @@ contract Lottery {
         return players.length;
     }
 
-    function getAWinner() public view returns(string memory){
-        
+    function getAWinner() private {        
         
         require(players.length == 10, "We do not have 10 participants yet ");
         uint nbOfPlayers = players.length;
@@ -76,27 +84,32 @@ contract Lottery {
 
         address winner = players[winnerIndex];   
 
-       //sendPrize(winner);
+        sendPrize(winner);        
 
-        //emit fml(player[winner], winner);
+        emit DisplayWinner(player[winner]);
         
-        return player[winner];
-    }
+        resetState();
+    }    
 
-    function getCalculatedPrizePool() public view returns (uint256){
-        uint256 effectivePrize;        
+    function isJackPotWon() private view returns (bool){
         uint randomHash = uint(keccak256(abi.encodePacked(block.difficulty, block.timestamp)));
-        bool isJackpot = (randomHash % 100) <= jackPotOdds;
-
-        if(isJackpot){
-            effectivePrize = prizePool + jackPot;
-        }
-
-        return effectivePrize;
+        return (randomHash % 100) <= jackPotOdds;
     }
+
     function sendPrize(address winner) private {
-        uint prize = prizePool;
+
+        if(isJackPotWon())
+        {
+            prizePool += jackPot;
+            jackPot = 0;
+            emit JackPotIsWon(string(abi.encodePacked("Congratulation to: ", player[winner], " you won the JACKPOT!!!!!")));
+        }
+       
+        payable(winner).transfer(prizePool);
+    }
+
+    function resetState() private {
         prizePool = 0;
-        payable(winner).transfer(prize);
+        delete players;
     }
 }
