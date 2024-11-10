@@ -77,7 +77,7 @@ contract Lottery {
         uint nbOfPlayers = players.length;
         uint randomHash = uint(keccak256(abi.encodePacked(block.difficulty, block.timestamp)));
         uint winnerIndex = randomHash % nbOfPlayers;
-
+    
         address winner = players[winnerIndex];   
 
         sendPrize(winner);        

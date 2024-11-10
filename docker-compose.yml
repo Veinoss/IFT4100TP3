@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  ganache:
+    image: trufflesuite/ganache-cli
+    ports:
+      - "8545:8545"
+    command: ["--host", "0.0.0.0", "--accounts", "10", "--defaultBalanceEther", "1000"]
+
+  truffle:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /app
+    depends_on:
+      - ganache
+    environment:
+      - NETWORK=development
+    command: bash -c "truffle compile && truffle migrate --network development"
+    volumes:
+      - .:/app
