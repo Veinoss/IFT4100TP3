@@ -16,7 +16,7 @@ along with web3.js.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
- * 
+ *
  *  @module ABI
  */
 
@@ -26,7 +26,6 @@ import { decodeParameters as decodeParametersInternal } from '../coders/decode.j
 import { encodeParameters } from '../coders/encode.js';
 
 export { encodeParameters, inferTypesAndEncodeParameters } from '../coders/encode.js';
-
 
 /**
  * Encodes a parameter based on its type to its ABI representation.
@@ -90,7 +89,7 @@ export const encodeParameter = (abi: AbiInput, param: unknown): string =>
  * Should be used to decode list of params
  */
 export const decodeParametersWith = (
-	abis: AbiInput[],
+	abis: AbiInput[] | ReadonlyArray<AbiInput>,
 	bytes: HexString,
 	loose: boolean,
 ): { [key: string]: unknown; __length__: number } => {
@@ -217,7 +216,7 @@ export const decodeParametersWith = (
  * ```
  */
 export const decodeParameters = (
-	abi: AbiInput[],
+	abi: AbiInput[] | ReadonlyArray<AbiInput>,
 	bytes: HexString,
 ): { [key: string]: unknown; __length__: number } => decodeParametersWith(abi, bytes, false);
 

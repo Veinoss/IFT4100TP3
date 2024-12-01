@@ -8,14 +8,54 @@ services:
     command: ["--host", "0.0.0.0", "--accounts", "10", "--defaultBalanceEther", "1000"]
 
   truffle:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: node:18
     working_dir: /app
+    volumes:
+      - .:/app
     depends_on:
       - ganache
     environment:
       - NETWORK=development
-    command: bash -c "truffle compile && truffle migrate --network development"
+      - HOST=http://ganache:8545
+    command: sh -c "npm install -g truffle && truffle compile && truffle migrate --network development"
+
+  react-app:
+    image: node:18
+    working_dir: /frontend
+    ports:
+      - "3000:3000"
     volumes:
-      - .:/app
+      - .env:/frontend/.env
+      - .:/frontend
+      - /frontend/node_modules
+    depends_on:
+      - ganache
+    command: |
+      sh -c "          
+      until grep -q 'REACT_APP_LOTTERY_ADDRESS=' /frontend/.env; do
+        echo 'Waiting for REACT_APP_LOTTERY_ADDRESS to be set in .env...';
+        sleep 3;
+      done;
+      echo 'REACT_APP_LOTTERY_ADDRESS is set!';
+      npm install && npm start --host 0.0.0.0;     
+      "
+
+  cleaner:
+    image: alpine
+    volumes:
+      - .:/frontend
+    depends_on:
+      - react-app
+    command: |
+      sh -c "
+      echo 'Installing curl...';
+      apk add --no-cache curl;
+      echo 'Waiting for React app to start...';
+      until curl -s http://react-app:3000 > /dev/null; do
+        echo 'React app not ready, retrying in 3 seconds...';
+        sleep 3;
+      done;
+      echo 'React app is up! Cleaning .env...';
+      sed -i '/^REACT_APP_LOTTERY_ADDRESS=/d' ./frontend/.env;
+      echo 'Cleanup complete.';
+      "
